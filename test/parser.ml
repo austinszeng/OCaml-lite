@@ -2,22 +2,95 @@ open OUnit2
 open Ocaml_lite.Parser
 
 let parse_tests = "test suite for parser" >::: [
-  
-    (* "id" >::
-    (fun _ -> assert_equal ~printer:print_lc_expr
-        (ELambda ("x", IntTy, (EVar "x")))
-        (parse "&x : int.x"));
-    "application" >::
-    (fun _ -> assert_equal ~printer:print_lc_expr
-        (EApp (ELambda ("x", BoolTy, (EVar "x")), EVar "y"))
-        (parse "(&x : bool.x) y"));
-    "apply inside lambda" >::
-    (fun _ -> assert_equal ~printer:print_lc_expr
-        (ELambda ("x", UnitTy, EApp (EVar "x", EVar "y")))
-        (parse "&x : unit.x y"));
-    "naming" >::
-    (fun _ -> assert_equal ~printer:print_lc_expr
-        (EApp (ELambda ("fun", FuncTy (UnitTy, FuncTy (IntTy, BoolTy)), (EApp (EVar "fun", EVar "v"))),
-               ELambda ("x", UnitTy, ELambda ("y", FuncTy (IntTy, BoolTy), EVar "x"))))
-        (parse "fun = &x : unit. &y : int -> bool. x; fun v")); *)
-  ]
+    "Let bind without type explicitly assigned" >::
+    (fun _ -> 
+        let input = "let x = 1;;" in
+        let expected = LetBind ("x", [], None, IntExpr 1) in 
+        assert_equal ~printer:print_binding 
+            (parse input) 
+            expected);
+    
+    "Let bind with bool type" >::
+    (fun _ ->
+        let input = "let cond : bool = true;;" in
+        let expected = LetBind ("cond", [], Some(BoolTy), TrueExpr) in
+        assert_equal ~printer:print_binding
+            (parse input) 
+            expected);
+
+    "Type bind" >::
+    (fun _ ->
+        let input = 
+        "type VarOrVarInt =
+            | Var of string
+            | VarInt of string * int
+            | Error ;;" in
+        let expected = TypeBind ("VarOrVarInt", 
+            [("Var", Some(StrTy)); 
+            ("VarInt", Some(PairTy (StrTy, IntTy))); 
+            ("Error", None)]) in
+        assert_equal ~printer:print_binding 
+            (parse input) 
+            expected);
+
+    "Lt Binary operator expression" >::
+    (fun _ ->
+        let input = "11 < 9;;" in
+        let expected = BinopExpr (IntExpr(11), LtComp, IntExpr(9)) in
+        assert_equal ~printer:print_expr 
+            (parse input) 
+            expected);    
+
+    "Concat Binary operator expression" >::
+    (fun _ ->
+        let input = "\"Jeff\" ^ \"rey\";;" in
+        let expected = BinopExpr (StrExpr("Jeff"), Concatenate, StrExpr("rey")) in
+        assert_equal ~printer:print_expr 
+            (parse input) 
+            expected); 
+
+    "Unary not comparison expression" >::
+    (fun _ ->
+        let input = "not true;;" in
+        let expected = UnopExpr (NotComp, TrueExpr) in
+        assert_equal ~printer:print_expr 
+            (parse input) 
+            expected); 
+
+    "Unary negate expression" >::
+    (fun _ ->
+        let input = "~100" in
+        let expected = UnopExpr (Neg, IntExpr (100)) in
+        assert_equal ~printer:print_expr 
+            (parse input)
+            expected);
+
+    "Let expression" >::
+    (fun _ -> 
+        let input = "let y : int = 5 in (10 + y);;" in
+        let expected = LetExpr ("y", [], Some(IntTy), IntExpr(5), BinopExpr (IntExpr(10), Add, IdExpr("y"))) in 
+        assert_equal ~printer:print_expr 
+            (parse input) 
+            expected);
+
+    "Match branch" >::
+    (fun _ -> 
+        let input = "x => 1;;" in
+        let expected = MatchBr ("x", None, IntExpr (1)) in
+        assert_equal ~printer:print_match_branch 
+            (parse input) 
+            expected);
+
+    "Match expression" >::
+    (fun _ ->
+        let input = 
+            "match x with
+                | x => true
+                | y => false" in
+        let expected = MatchExpr (IdExpr ("x"), 
+            [MatchBr ("x", None, TrueExpr);
+            MatchBr ("y", None, FalseExpr)]) in
+        assert_equal ~printer:print_expr 
+            (parse input) 
+            expected);
+]
