@@ -30,7 +30,7 @@ let interp_tests = "test suite for the interpreter" >::: [
     (fun _ ->
     assert_equal ~printer:print_value
         (interp (parse "(5, \"55\");;")) 
-                TupleVal (IntVal (5), StrVal ("55")));
+                TupleVal ([IntVal (5); StrVal ("55")]));
 
     "Bool binop comparison" >::
     (fun _ ->
