@@ -65,4 +65,14 @@ let interp_tests = "test suite for the interpreter" >::: [
         (interp (parse "if true then 4 else 5;;")) 
                 IntVal (4));
 
+    "plus" >::
+    (fun _ -> 
+    assert_equal ~printer:print_value
+        (interp (parse ("1 + 2")))
+        (IntVal 3));
+
+    "times" >::
+    (fun _ -> assert_equal ~printer:print_value
+        (interp (parse ("5 * 2")))
+        (IntVal 10));
 ]
