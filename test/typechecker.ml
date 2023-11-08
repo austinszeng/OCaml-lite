@@ -44,7 +44,7 @@ let type_tests = "test suite for the typechecker" >::: [
     let input = "let pair : string * bool = (\"s\", true);;" in
     assert_equal ~printer:print_type 
       (type_check (parse (input)) 
-      (PairTy (string, bool))));
+      (TupleTy ([string; bool]))));
 
   "Let bind function type" >::
   (fun _ -> 

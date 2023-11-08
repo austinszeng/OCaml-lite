@@ -27,7 +27,7 @@ let parse_tests = "test suite for parser" >::: [
             | Error ;;" in
         let expected = TypeBind ("VarOrVarInt", 
             [("Var", Some(StrTy)); 
-            ("VarInt", Some(PairTy (StrTy, IntTy))); 
+            ("VarInt", Some(TupleTy ([StrTy; IntTy]))); 
             ("Error", None)]) in
         assert_equal ~printer:print_binding 
             (parse input) 

@@ -32,15 +32,6 @@ let interp_tests = "test suite for the interpreter" >::: [
         (interp (parse "(5, \"55\");;")) 
                 TupleVal (IntVal (5), StrVal ("55")));
 
-    "Match expression" >::
-    (fun _ ->
-        assert_equal ~printer:print_value
-            (interp (parse 
-                "match x with
-                | x => true
-                | y => false;;")) 
-            BoolVal (true));
-
     "Bool binop comparison" >::
     (fun _ ->
         assert_equal ~printer:print_value
@@ -59,10 +50,19 @@ let interp_tests = "test suite for the interpreter" >::: [
         (interp (parse "~2;;")) 
                 IntVal (-2));
                 
+    "Match expression" >::
+    (fun _ ->
+        assert_equal ~printer:print_value
+            (interp (parse 
+                "match 5 with
+                | 5 => true
+                | 6 => false;;")) 
+            BoolVal (true));
+
     "If expression" >::
     (fun _ ->
     assert_equal ~printer:print_value
-        (interp (parse "if true then () else 5;;")) 
-                UnitVal);
+        (interp (parse "if true then 4 else 5;;")) 
+                IntVal (4));
 
 ]
