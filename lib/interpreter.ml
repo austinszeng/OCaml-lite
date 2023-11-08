@@ -24,6 +24,7 @@ type value =
   | StrVal of string
   | UnitVal
   | TupleVal of value list
+  (* | FunVal of  *)
 
 let rec print_value : value -> string = function
   | IntVal i -> string_of_int i

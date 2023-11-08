@@ -39,7 +39,7 @@ and typ =
   | StrTy
   | UnitTy
   | FuncTy of typ * typ
-  | PairTy of typ * typ
+  | TupleTy of typ list
   | UserTy of string
 
 and match_branch = 
@@ -50,11 +50,14 @@ and pattern_vars =
   | PatternMultiVars of string list;;
 
 
-
 (* Print functions for testing *)
 (* still need to test the print function itself *)
 let rec print_program (p : program) : string = 
-  List.iter print_binding p
+  let rec print_list (f) (ls : binding list) : string = 
+    match ls with
+      | [] -> ""
+      | h::t -> f h ^ ";" ^ print_list f t
+  in "[" ^ print_list print_binding p ^ "]"
 
 and print_binding = function
   | LetBind (id, params, typ_opt, expr) ->
@@ -72,7 +75,7 @@ and print_type_defs type_defs =
   String.concat "\n| " (List.map (fun (id, ty_opt) ->
     match ty_opt with
     | Some ty -> id ^ " of " ^ print_type ty
-    | None -> name) type_defs)
+    | None -> id) type_defs)
 
 and print_params params = 
   String.concat " " (List.map print_param params)
@@ -119,9 +122,6 @@ and print_unop = function
   | NotComp -> "not"
   | Neg -> "~"
 
-(* what about this branch?
-    | ( <type> )
-*)
 and print_type = function
   | IntTy -> "int"
   | BoolTy -> "bool"
@@ -130,19 +130,19 @@ and print_type = function
   | UserTy id -> id 
   | FuncTy (ty1, ty2) ->
     print_type ty1 ^ " -> " ^ print_type ty2
-  | PairTy (ty1, ty2) ->
-    print_type ty1 ^ " * " ^ print_type ty2
+  | TupleTy (ls) ->
+    "(" ^ String.concat (" * ") (List.map print_type ls) ^ ")"
 
 and print_match_branches branches =
-  String.concat "\n" (List.map print_match_branch branches)
+  String.concat ("\n") (List.map print_match_branch branches)
 
-and print_match_branch (id, pattern_vars_opt, e) =
+and print_match_branch (MatchBr(id, pattern_vars_opt, e)) =
   "| " ^ id ^ print_pattern_vars_opt pattern_vars_opt ^ " => " ^ print_expr e
 
 and print_pattern_vars pattern_vars =
   match pattern_vars with
   | PatternVar id -> id
-  | PatternMultiVars ids -> "(" ^ String.concat ", " ids ^ ")"
+  | PatternMultiVars ids -> "(" ^ String.concat (", ") (ids) ^ ")"
 
 and print_pattern_vars_opt = function
   | Some pattern_vars -> print_pattern_vars pattern_vars

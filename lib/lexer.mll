@@ -38,7 +38,7 @@ type token =
   | Concat           (** ^ - binary operator *)
   | And              (** && - binary operator *)
   | Or               (** || - binary operator *)
-  | Not              (** ! - unary operator *)
+  | Not              (** not - unary operator *)
   | Negate           (** ~ - unary operator *)
   | DoubleSemicolon  (** ;; *)
   | Colon            (** : *)
