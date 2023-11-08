@@ -86,11 +86,52 @@ let parse_tests = "test suite for parser" >::: [
         let input = 
             "match x with
                 | x => true
-                | y => false" in
+                | y => false ;;" in
         let expected = MatchExpr (IdExpr ("x"), 
             [MatchBr ("x", None, TrueExpr);
             MatchBr ("y", None, FalseExpr)]) in
         assert_equal ~printer:print_expr 
             (parse input) 
             expected);
+
+    "Associativity" >::
+    (fun _ ->
+        let input = "1 + 2 + 3;;" in
+        let expected = BinopExpr (BinopExpr(IntExpr(1), Add, IntExpr(2)), Add, IntExpr(3)) in
+        assert_equal ~printer:print_expr 
+            (parse input) 
+            expected);
+
+    "Parentheses" >::
+    (fun _ ->
+        let input = "1 + 2 + (3 + 4);;" in
+        let expected = BinopExpr (BinopExpr(IntExpr(1), Add, IntExpr(2)), Add, BinopExpr(IntExpr(3), Add, IntExpr(4))) in
+        assert_equal ~printer:print_expr 
+            (parse input) 
+            expected);
+
+    "Precedence" >::
+    (fun _ ->
+        let input = "1 * 2 + 3 * 4;;" in
+        let expected = BinopExpr (BinopExpr(IntExpr(1), Mult, IntExpr(2)), Add, BinopExpr(IntExpr(3), Mult, IntExpr(4))) in
+        assert_equal ~printer:print_expr 
+            (parse input) 
+            expected);
+
+    "Hanging operator" >::
+    (fun _ -> try
+        let _ = parse ("1 + 3 +") in
+        assert_failure "'1 + 3 +' passed the parser"
+    with
+    | ParseError _ -> assert_bool "" true
+    | _ -> assert_failure "Unexpected error");
+
+    "Leading operator" >::
+    (fun _ -> try
+        let _ = parse ("* 1 + 3") in
+        assert_failure "'* 1 + 3' passed the parser"
+        with
+        | ParseError _ -> assert_bool "" true
+        | _ -> assert_failure "Unexpected error");
+
 ]
