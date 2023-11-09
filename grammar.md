@@ -26,6 +26,18 @@
          | ( )
          | match <expr> with ['|' <match_branch>]+
 
+```
+(Highest precedence)
+not
+~
+*, /, mod
++, -, ^
+<, =
+&&
+||
+(Lowest precedence) 
+```
+
 <binop> ::= + | - | * | / | mod | < | = | ^ | && | ||
 
 <unop> ::= not | ~
