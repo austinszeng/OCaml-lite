@@ -51,7 +51,6 @@ and pattern_vars =
 
 
 (* Print functions for testing *)
-(* still need to test the print function itself *)
 let rec print_program (p : program) : string = 
   let rec print_list (f) (ls : binding list) : string = 
     match ls with
