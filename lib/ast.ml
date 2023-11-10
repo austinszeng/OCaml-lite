@@ -102,7 +102,7 @@ and print_expr = function
   | FalseExpr -> "false"
   | StrExpr s -> s
   | IdExpr id -> id
-  | UnitExpr -> "( )"
+  | UnitExpr -> "()"
   | MatchExpr (e, branches) ->
     "match " ^ print_expr e ^ " with\n" ^ print_match_branches branches
 
@@ -130,7 +130,7 @@ and print_type = function
   | UserTy id -> id 
   | FuncTy (ty1, ty2) ->
     print_type ty1 ^ " -> " ^ print_type ty2
-  | TupleTy (ls) ->
+  | TupleTy ls ->
     "(" ^ String.concat (" * ") (List.map print_type ls) ^ ")"
 
 and print_match_branches branches =

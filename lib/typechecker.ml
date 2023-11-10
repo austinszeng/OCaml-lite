@@ -1,4 +1,4 @@
-open Ast
+(* open Ast *)
 
 (* let rec type_check_binding (b : binding) =
   match b with

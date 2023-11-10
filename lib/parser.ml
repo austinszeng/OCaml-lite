@@ -3,8 +3,6 @@ open Ast
 
 exception ParseError of string
 
-open Lexer
-
 let unexpected_end (_ : unit) : 'a =
   raise (ParseError "Unexpected end of input")
 
@@ -32,12 +30,26 @@ let lassoc (seps : (token * (expr -> expr -> expr)) list)
 let rec parse_pattern_vars : token list -> pattern_vars * token list = function
   | Id x :: rest -> (PatternVar (x), rest)
   | LParen :: rest -> 
-      let rec parse_pattern_vars_list src (acc : string list) = 
+      let rec parse_pattern_vars_list (src : token list) (acc : string list) = 
         match src with
         | RParen :: rest -> (List.rev acc, rest)
-        | Id x :: Comma :: rest -> parse_pattern_vars_list rest (x :: acc) in
+        | Id x :: Comma :: rest -> parse_pattern_vars_list rest (x :: acc)
+        | _ -> raise (ParseError ("Expected $id or )")) in
       let (xs, rest) = parse_pattern_vars_list rest [] in
       (PatternMultiVars (xs), rest)
+  |  _ -> raise (ParseError ("Expected $id or ("))
+
+(* Helper function to parse ['|' <match_branch>]+ in match expressions *)
+and parse_match_branch_list (src : token list) =
+  let rec helper acc src = 
+    match src with
+    | Pipe :: r -> 
+      let (b, r2) = parse_match_branch r in
+      helper (b :: acc) r2
+    (* finished *)
+    | _ -> (List.rev acc, src) 
+  in 
+  helper [] src 
 
 and parse_match_branch : token list -> match_branch * token list = function
   | Id x :: rest -> 
@@ -50,6 +62,7 @@ and parse_match_branch : token list -> match_branch * token list = function
         let (pat_vars, rest3) = parse_pattern_vars rest2 in
         let (e, rest4) = parse_expr rest3 in
         ((MatchBr (x, Some(pat_vars), e), rest4)))  
+  | _ -> raise (ParseError ("Expected $id in match branch"))
 
 and parse_type (src : token list) : typ * token list =  
   let rec parse_tuple_ty_list acc src =
@@ -58,8 +71,8 @@ and parse_type (src : token list) : typ * token list =
     | Times :: r ->
       let (e, r2) = parse_type r in
       parse_tuple_ty_list (e :: acc) r2 
-    | _ -> raise (ParseError "Expected ), or * in tuple type") in
-  
+    | _ -> (List.rev acc, src) in
+
   let rec parse_single_type (src : token list) = match src with
     | TInt :: rest -> (IntTy, rest)
     | TBool :: rest -> (BoolTy, rest)
@@ -68,28 +81,32 @@ and parse_type (src : token list) : typ * token list =
     | Id x :: rest -> (UserTy x, rest)
     | LParen :: rest -> 
       let (ty, rest2) = parse_single_type rest in
-      (ty, rest2) in
+      (ty, rest2) 
+    | [] -> raise (ParseError ("Unexpected got end of file"))
+    | t :: _ -> raise (ParseError ("Expected int, bool, string, unit, $id, or (, got: " ^ tok_to_str t)) in
 
   let parse_extended_type (src : token list) (ty1 : typ) = match src with
-    | Times :: r -> 
-      let (ls, r2) = parse_tuple_ty_list [ty1] r in
-      (TupleTy (ls), expect RParen r2)
+    | Times :: _ -> 
+      let (ls, r) = parse_tuple_ty_list [ty1] src in
+      (TupleTy (ls), r)
     | Arrow :: r ->
       let (ty2, r2) = parse_single_type r in
-      (FuncTy (ty1, ty2), expect RParen r2) 
+      (FuncTy (ty1, ty2), r2) 
     (* <type> was just a single type, so it's done *)
     | _ -> (ty1, src)
     in
 
   let (ty1, r) = parse_single_type src in
   (match r with
+    (* Handles ( <type> ) case *)
     | RParen :: r2 -> (ty1, r2)
     | _ -> parse_extended_type r ty1)
-
 
 and parse_unop : token list -> unop * token list = function
   | Not :: rest -> (NotComp, rest)
   | Negate :: rest -> (Neg, rest)
+  | [] -> raise (ParseError ("Unexpected got end of file"))
+  | t :: _ -> raise (ParseError ("Expected not or ~, got: " ^ tok_to_str t))
 
 and parse_binop : token list -> binop * token list = function
   | Plus :: rest -> (Add, rest)
@@ -102,6 +119,9 @@ and parse_binop : token list -> binop * token list = function
   | Concat :: rest -> (Concatenate, rest)
   | And :: rest -> (AndComp, rest)
   | Or :: rest -> (OrComp, rest)
+  | [] -> raise (ParseError ("Unexpected got end of file"))
+  | t :: _ -> raise (ParseError ("Expected binop, got: " ^ tok_to_str t))
+    
 
 (* EXPR CODE START *)
 
@@ -112,7 +132,7 @@ and parse_params_list (src : token list) =
     match src with
     (* (Finished)
        these tokens are used in parse_opt_type_and_expr, so they are kept *)
-    | Colon :: rest | Eq :: rest -> (List.rev acc, src)
+    | Colon :: _ | Eq :: _ -> (List.rev acc, src)
     (* add parsed <param> to "acc" list *)
     | _ ->
       let (p, rest) = parse_param src in
@@ -130,6 +150,8 @@ and parse_opt_type (src : token list) =
   (* no type specified *)
   | DoubleArrow :: rest -> 
     (None, rest)
+  | [] -> raise (ParseError ("Unexpected got end of file"))
+  | t :: _ -> raise (ParseError ("Expected : or =>, got: " ^ tok_to_str t))  
 
 (* Helper function to parse [: <type>] in Let bindings and expressions 
     Output type (option) and expression *)
@@ -145,6 +167,9 @@ and parse_opt_type_and_expr (src : token list) =
   | Eq :: rest -> 
     let (e, rest2) = parse_expr rest in
     (None, e, rest2)
+  | [] -> raise (ParseError ("Unexpected got end of file"))
+  | t :: _ -> raise (ParseError ("Expected : or =, got: " ^ tok_to_str t))
+    
 
 (* Helper function to parse TupleExpr *)
 and parse_expr_list (src : token list) =
@@ -175,7 +200,9 @@ and parse_let_expr (src : token list) =
       let rest3 = expect In rest2 in
       let (e2, rest4) = parse_expr rest3 in
       (LetRecExpr (x, p, t, e1, e2), rest4)
-    | _ -> raise (ParseError "Ill-formed let expression")
+    | [] -> raise (ParseError ("Unexpected got end of file"))
+    | t :: _ -> raise (ParseError ("Ill-formed let expression, expected $id or rec, got: " ^ tok_to_str t))
+      
 
 (** Parse a base expression -- that is, expressions which are outside of the
     operator precedence hierarchy. *)
@@ -195,46 +222,46 @@ and bexpr : token list -> expr * token list = function
     let (ty, r3) = parse_opt_type r2 in
     let (e, r4) = parse_expr r3 in
     (FunExpr (p, ty, e), r4)
+  | Match :: r ->
+    let (e, r2) = parse_expr r in
+    let r3 = expect With r2 in
+    let (ls, r4) = parse_match_branch_list r3 in
+    (MatchExpr (e, ls), r4)
   | Not :: r ->
     let (e, r2) = bexpr r in
     (UnopExpr (NotComp, e), r2)
-  | LParen :: r ->
+  | Negate :: r ->
+    let (e, r2) = bexpr r in
+    (UnopExpr (Neg, e), r2)
+  | LParen :: RParen :: r -> (UnitExpr, r)
+  | LParen :: r -> 
     let (e, r2) = parse_expr r in
-    (e, expect RParen r2)
+    (match r2 with
+      (* ( <expr> ) *)
+      | RParen :: r3 -> (e, r3)
+      (* ( <expr> [, <expr>]+ ) *)
+      | _ -> 
+        let (e_ls, r3) = parse_expr_list r in
+        (TupleExpr (e_ls), r3))
   | Int i :: r -> (IntExpr i, r)
   | True :: r -> (TrueExpr, r)
   | False :: r -> (FalseExpr, r)
   | String s :: r -> (StrExpr s, r)
   | Id x :: r -> (IdExpr x, r)
-  | LParen :: RParen :: r -> (UnitExpr, r)
-  (* ( <expr> [, <expr>]+ )  *)
-  | LParen :: r -> 
-    let (e_ls, r2) = parse_expr_list r in
-    (TupleExpr (e_ls), r2)
+  (*
+     <expr> <expr> 
+     Unsure how to implement this branch of the <expr> grammar 
+     ... 
+  *)
   | [] -> raise (ParseError "Expected base expression, got end of input")
-  (* <expr> <expr> 
-     this shadows this error handling branch
-     | t :: _ -> raise (ParseError ("Expected base expression, got " ^ tok_to_str t))
-     but i can't think of a better way right now *)
-  | src ->
-    let (e1, r1) = parse_expr src in
-    let (e2, r2) = parse_expr r1 in
-    (AppExpr (e1, e2), r2)
-
-
-(** Parse a negate expression. *)
-and nexpr : token list -> expr * token list = function
-  | Negate :: r ->
-    let (e, r2) = bexpr r in
-    (UnopExpr (Neg, e), r2)
-  | t :: _ -> raise (ParseError ("Expected ~, got: " ^ tok_to_str t))
+  | t :: _ -> raise (ParseError ("Expected base expression, got " ^ tok_to_str t))
 
 (** Parse a multiplicative expression. *)
 and mexpr (s : token list) : expr * token list =
   lassoc [(Times, fun a b -> BinopExpr (a, Mult, b));
           (Divide, fun a b -> BinopExpr (a, Div, b));
           (Mod, fun a b -> BinopExpr (a, Modulo, b))]
-          nexpr
+          bexpr
           s
 
 (** Parse an additive expression. *)
@@ -273,6 +300,8 @@ and parse_param : token list -> param * token list = function
     let (ty, rest2) = parse_type rest in
     let rest3 = expect RParen rest2 in
     (VarTyParam (x, ty), rest3)
+  | [] -> raise (ParseError ("Unexpected got end of file"))
+  | t :: _ -> raise (ParseError ("Expected $id or (, got: " ^ tok_to_str t))
     
 
 and parse_binding (src : token list) : binding * token list =
@@ -282,17 +311,17 @@ and parse_binding (src : token list) : binding * token list =
     let rec parse_type_constructor_args acc src =
       match src with
       (* ['|' $id [of <type>]]+ *)
-      | Id x :: Of :: rest ->
+      | Pipe :: Id x :: Of :: rest ->
         let (ty, rest2) = parse_type rest in 
         parse_type_constructor_args ((x, Some(ty)) :: acc) rest2
       (* ['|' $id ]+ *)
-      | Id x :: rest -> 
+      | Pipe :: Id x :: rest -> 
         parse_type_constructor_args ((x, None) :: acc) rest
       (* finished *)
       | _ -> (List.rev acc, src) in
     parse_type_constructor_args [] src in
 
-  (match src with
+  match src with
     | Let :: Id x :: params ->
       let (p, rest) = parse_params_list params in 
       let (t, e, rest2) = parse_opt_type_and_expr rest in
@@ -303,19 +332,20 @@ and parse_binding (src : token list) : binding * token list =
       (LetRecBind (x, p, t, e), rest2)
     | Type :: Id x :: Eq :: ls ->
       let (ty_ls, rest) = parse_type_constructor ls in
-      (TypeBind (x, ty_ls), rest))
+      (TypeBind (x, ty_ls), rest)
+    | [] -> raise (ParseError ("Unexpected got end of file"))
+    | t :: _ -> raise (ParseError ("Expected let or type, got: " ^ tok_to_str t))
 
 
 and parse_program (src : token list) : program * token list = 
   (* helper function to parse each binding*)
-  let rec parse_mult_bindings src = match src with 
-    (* src should be [] *)
-    | [] -> ([], src)
-    | rest ->
-      let (b, rest2) = parse_binding rest in
-      let (b2, rest3) = parse_mult_bindings rest2 in
-      (b :: b2, rest3) in
-  let binds, rest = parse_mult_bindings src in
+  let rec parse_mult_bindings src acc = match src with 
+    | [] -> (List.rev acc, [])
+    | _ ->
+      let (b, rest) = parse_binding src in
+      let rest2 = expect DoubleSemicolon rest in
+      parse_mult_bindings rest2 (b :: acc) in
+  let binds, rest = parse_mult_bindings src [] in
   (binds, rest)
 
 let parse (src: string) : program  =
