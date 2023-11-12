@@ -5,4 +5,5 @@
 ```Reed College's CSCI384 (Programming Language Design and Implementation) course "final project" spanning the last 6 weeks of the semester.```
 
 ## TO-DOs / Bugs
-- [ ] Implement `<expr> <expr>` branch of `<expr>` grammar 
+- [x] Implement `<expr> <expr>` branch of `<expr>` grammar 
+- [ ] Write parser tests to test function application function (currently, it just doesn't break anything)

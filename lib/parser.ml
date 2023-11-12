@@ -202,7 +202,6 @@ and parse_let_expr (src : token list) =
       (LetRecExpr (x, p, t, e1, e2), rest4)
     | [] -> raise (ParseError ("Unexpected got end of file"))
     | t :: _ -> raise (ParseError ("Ill-formed let expression, expected $id or rec, got: " ^ tok_to_str t))
-      
 
 (** Parse a base expression -- that is, expressions which are outside of the
     operator precedence hierarchy. *)
@@ -248,20 +247,29 @@ and bexpr : token list -> expr * token list = function
   | False :: r -> (FalseExpr, r)
   | String s :: r -> (StrExpr s, r)
   | Id x :: r -> (IdExpr x, r)
-  (*
-     <expr> <expr> 
-     Unsure how to implement this branch of the <expr> grammar 
-     ... 
-  *)
   | [] -> raise (ParseError "Expected base expression, got end of input")
   | t :: _ -> raise (ParseError ("Expected base expression, got " ^ tok_to_str t))
+
+(* Parse function application <expr> <expr> 
+   --> A ::= AB | B *)
+and func_app (src : token list) : expr * token list = 
+  let rec helper ex = function
+    (* Tries matching to bexpr tokens *)
+    | Let :: _ | If :: _ | Fun :: _ | Match :: _ | Not :: _ | Negate :: _ | LParen :: _ 
+      | Int _ :: _ | True :: _ | False :: _ | String _ :: _ | Id _ :: _ as ts->
+        let (b, r) = bexpr ts in
+        helper (AppExpr (ex, b)) r
+    (* If no match, then it's not a function application, return as is *)
+    | ts -> (ex, ts) in
+  let (e1, r) = bexpr src in
+  helper e1 r
 
 (** Parse a multiplicative expression. *)
 and mexpr (s : token list) : expr * token list =
   lassoc [(Times, fun a b -> BinopExpr (a, Mult, b));
           (Divide, fun a b -> BinopExpr (a, Div, b));
           (Mod, fun a b -> BinopExpr (a, Modulo, b))]
-          bexpr
+          func_app
           s
 
 (** Parse an additive expression. *)

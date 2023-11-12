@@ -1,5 +1,5 @@
 ## Grammar
-
+```
 <program> ::= [<binding> ;;]+
 
 <binding> ::= let $id [<param>]* [: <type>] = <expr>
@@ -26,17 +26,10 @@
          | ( )
          | match <expr> with ['|' <match_branch>]+
 
-```
-(Highest precedence)
-not
-~
-*, /, mod
-+, -, ^
-<, =
-&&
-||
-(Lowest precedence) 
-```
+Note: 
+Handle function application <expr> <expr> in a different rule 
+A ::= AB | B
+where B are base expressions outside operator precedence hierarchy
 
 <binop> ::= + | - | * | / | mod | < | = | ^ | && | ||
 
@@ -55,18 +48,21 @@ not
 
 <pattern_vars> ::= $id
                  | ( $id [, $id ]+)
+```
+
 
 
 ## Precedences
 
 (Highest precedence)
-not
-~
-*, /, mod
-+, -, ^
-<, =
-&&
-||
+- not
+- ~
+- *, /, mod
+- +, -, ^
+- <, =
+- &&
+- ||
+
 (Lowest precedence)
 
 Note that a few of these precedences are loose. For example, the string concatenation operator ^ can really be parsed at any precedence above = because the program will be ill-typed if an expression includes both ^ and any numerical operators. If you find it easier to modify the precedences above you're free to do so, as long as you preserve the parse trees of well-typed expressions.
