@@ -41,6 +41,7 @@ and typ =
   | FuncTy of typ * typ
   | TupleTy of typ list
   | UserTy of string
+  | VarTy of int (* For Hindley-Milner alg, polymorphic type variable *)
 
 and match_branch = 
   | MatchBr of string * pattern_vars option * expr
