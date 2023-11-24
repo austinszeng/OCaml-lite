@@ -41,7 +41,13 @@ and typ =
   | FuncTy of typ * typ
   | TupleTy of typ list
   | UserTy of string
-  | VarTy of int (* For Hindley-Milner alg, polymorphic type variable *)
+  (* For HM typechecking algorithm *)
+  | VarTy of int 
+  (* e.g., forall a. a -> a 
+     For all types "a", a function takes type "a" and returns value of same type 
+     This introduces polymorphic functions *)
+  | ForallTy of int * typ
+
 
 and match_branch = 
   | MatchBr of string * pattern_vars option * expr
@@ -132,6 +138,8 @@ and print_type = function
     print_type ty1 ^ " -> " ^ print_type ty2
   | TupleTy ls ->
     "(" ^ String.concat (" * ") (List.map print_type ls) ^ ")"
+  | VarTy id -> "var " ^ string_of_int id
+  | ForallTy (id, ty) -> "forall " ^ string_of_int id ^ ". " ^ print_type ty 
 
 and print_match_branches branches =
   String.concat ("\n") (List.map print_match_branch branches)
