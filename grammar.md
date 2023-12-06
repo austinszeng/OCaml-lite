@@ -1,4 +1,9 @@
 ## Grammar
+Note:
+- `[ A ]` for some sequence of symbols A means that A is optional
+- `[ A ]*` means that A may appear any number of times (including zero)
+- `[ A ]+` means that A may appear any number of times but must appear at least once
+
 ```
 <program> ::= [<binding> ;;]+
 
