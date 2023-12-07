@@ -96,6 +96,14 @@ let parse_tests = "test suite for parser" >::: [
             (parse input) 
             expected);
 
+    "Fun expression" >::
+    (fun _ ->
+        let input = "let t = fun x => x + 5" in
+        let expected = [LetBind ("t", [], None, FunExpr ([VarParam "x"], None, BinopExpr(IdExpr "x", Add, IntExpr 5)))] in
+        assert_equal ~printer:print_program
+            (parse input) 
+            expected);
+
     "Associativity" >::
     (fun _ ->
         let input = wrap_input("1 + 2 + 3") in
