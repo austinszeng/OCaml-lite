@@ -219,8 +219,9 @@ and bexpr : token list -> expr * token list = function
   | Fun :: r ->
     let (p, r2) = parse_params_list r in
     let (ty, r3) = parse_opt_type r2 in
-    let (e, r4) = parse_expr r3 in
-    (FunExpr (p, ty, e), r4)
+    let r4 = expect DoubleArrow r3 in
+    let (e, r5) = parse_expr r4 in
+    (FunExpr (p, ty, e), r5)
   | Match :: r ->
     let (e, r2) = parse_expr r in
     let r3 = expect With r2 in
@@ -255,7 +256,7 @@ and bexpr : token list -> expr * token list = function
 and func_app (src : token list) : expr * token list = 
   let rec helper ex = function
     (* Tries matching to bexpr tokens *)
-    | Let :: _ | If :: _ | Fun :: _ | Match :: _ | Not :: _ | Negate :: _ | LParen :: _ 
+    | Let :: _ | If :: _ | Match :: _ | Fun :: _ | Not :: _ | Negate :: _ | LParen :: _ 
       | Int _ :: _ | True :: _ | False :: _ | String _ :: _ | Id _ :: _ as ts->
         let (b, r) = bexpr ts in
         helper (AppExpr (ex, b)) r
