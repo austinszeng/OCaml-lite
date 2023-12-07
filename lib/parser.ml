@@ -55,13 +55,14 @@ and parse_match_branch : token list -> match_branch * token list = function
   | Id x :: rest -> 
     (match rest with 
       (* optional pattern_vars *)
-      | DoubleArrow :: rest2 -> 
-        let (e, rest3) = parse_expr rest2 in
-        (MatchBr (x, None, e), rest3)
-      | rest2 -> 
-        let (pat_vars, rest3) = parse_pattern_vars rest2 in
-        let (e, rest4) = parse_expr rest3 in
-        ((MatchBr (x, Some(pat_vars), e), rest4)))  
+      | DoubleArrow :: r2 -> 
+        let (e, r3) = parse_expr r2 in
+        (MatchBr (x, None, e), r3)
+      | r2 -> 
+        let (pat_vars, r3) = parse_pattern_vars r2 in
+        let r4 = expect DoubleArrow r3 in
+        let (e, r5) = parse_expr r4 in
+        ((MatchBr (x, Some(pat_vars), e), r5)))  
   | _ -> raise (ParseError ("Expected $id in match branch"))
 
 and parse_type (src : token list) : typ * token list =  
