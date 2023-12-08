@@ -153,13 +153,3 @@ and print_pattern_vars pattern_vars =
 and print_pattern_vars_opt = function
   | Some pattern_vars -> print_pattern_vars pattern_vars
   | None -> ""
-
-(* let rec print_value : value -> string = function
-  | VInt i -> string_of_int i
-  | VBool b -> string_of_bool b
-  | VStr s -> s
-  | VUnit -> "()"
-  | VTuple ls ->
-    "(" ^ String.concat (", ") (List.map print_value ls) ^ ")"
-  | VClosure (arg, env, e, r) -> s ^  ^ 
-  | VUser  *)

@@ -2,9 +2,6 @@
 Example OCaml-lite program. This is a re-implementation of the functions from
 for "OCaml Homework, Part 2". Some functions are not included because they used
 List module functions.
-
-
-TO-DO: Refer to 10/23 Notes to implement lists...
 *)
 
 type bstree =

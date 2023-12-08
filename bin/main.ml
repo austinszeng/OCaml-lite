@@ -11,4 +11,4 @@ let () =
     let () = In_channel.close ch in
     let ast = parse text in
     let _ = typecheck ast in
-    interpret ast
+    ignore (interpret ast)
